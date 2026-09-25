@@ -2,12 +2,14 @@
 # El motor real se elige con CAPTIONS_ENGINE en .env (mock | gemini_live | gemini_chunk | local).
 # Por defecto arranca en modo "mock" para que el proyecto funcione sin credenciales.
 engine: mock
-model: gemini-live-2.5-flash-preview
-rest_model: gemini-2.5-flash
+model: gemini-3.5-live-translate-preview
+rest_model: gemini-3.8-flash
 chunk_seconds: 4
 overlap_seconds: 0.5
 max_inflight: 4
 latency_target_ms: 2000
+native_translation: true
+idle_seconds: 1.2
 
 # Glosario de términos técnicos y nombres propios (se inyecta en el prompt).
 glossary:

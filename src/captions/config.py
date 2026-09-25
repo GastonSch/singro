@@ -44,6 +44,7 @@ class Settings:
     max_inflight: int = 4
     latency_target_ms: int = 2500
     flush_seconds: float = 6.0
+    idle_seconds: float = 1.2
     native_translation: bool = True
     glossary: dict[str, str] = field(default_factory=dict)
     sessions: list[SessionConfig] = field(default_factory=list)
@@ -78,6 +79,7 @@ def load_settings(path: str | Path | None = None) -> Settings:
         max_inflight=int(data.get("max_inflight", 4)),
         latency_target_ms=int(data.get("latency_target_ms", 2500)),
         flush_seconds=float(data.get("flush_seconds", 6.0)),
+        idle_seconds=float(data.get("idle_seconds", 1.2)),
         native_translation=str(os.getenv("CAPTIONS_NATIVE_TRANSLATION", "")).lower()
         in {"1", "true", "yes"}
         or bool(data.get("native_translation", True)),

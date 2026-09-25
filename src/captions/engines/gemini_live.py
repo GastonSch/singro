@@ -59,6 +59,45 @@ class GeminiLiveEngine(Engine):
         translation_buffer = ""
         finished = asyncio.Event()
         input_done = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        state: dict = {"input": "", "output": "", "language": None, "updated": 0.0}
+
+        def merge_text(previous: str, chunk: str) -> str:
+            if not chunk:
+                return previous
+            if not previous:
+                return chunk
+            if chunk in previous:
+                return previous
+            stripped = chunk.lstrip()
+            if previous.rstrip().endswith(stripped):
+                return previous
+            if stripped and stripped.startswith(previous.strip()):
+                return chunk
+            return previous + chunk
+
+        async def finalize() -> None:
+            nonlocal translation_buffer
+            if self.settings.native_translation:
+                original, translation, language = state["input"], state["output"], state["language"]
+                state["input"], state["output"], state["language"] = "", "", None
+                state["updated"] = 0.0
+                if original:
+                    await emit(
+                        CaptionEvent(
+                            kind="caption", lane="original", text=original, final=True,
+                            source_language=language,
+                        )
+                    )
+                if translation:
+                    await emit(
+                        CaptionEvent(kind="caption", lane="translation", text=translation, final=True)
+                    )
+            elif translation_buffer.strip():
+                text = translation_buffer.strip()
+                translation_buffer = ""
+                state["updated"] = 0.0
+                await emit(CaptionEvent(kind="caption", lane="translation", text=text, final=True))
 
         async with self.client.aio.live.connect(
             model=self.settings.model, config=self._config(source_language, target_language)
@@ -82,9 +121,6 @@ class GeminiLiveEngine(Engine):
 
             async def receiver() -> None:
                 nonlocal translation_buffer
-                last_input = ""
-                last_language: str | None = None
-                last_output = ""
                 try:
                     async for message in session.receive():
                         content = message.server_content
@@ -93,19 +129,21 @@ class GeminiLiveEngine(Engine):
 
                         original = content.input_transcription
                         if original and original.text:
-                            last_input = original.text
-                            last_language = original.language_code or last_language
+                            state["input"] = merge_text(state["input"], original.text)
+                            state["language"] = original.language_code or state["language"]
+                            state["updated"] = loop.time()
                             await emit(
                                 CaptionEvent(
                                     kind="caption",
                                     lane="original",
-                                    text=original.text,
+                                    text=state["input"],
                                     final=False,
-                                    source_language=last_language,
+                                    source_language=state["language"],
                                 )
                             )
                         interim = content.interim_input_transcription
                         if interim and interim.text:
+                            state["updated"] = loop.time()
                             await emit(
                                 CaptionEvent(kind="caption", lane="original", text=interim.text, final=False)
                             )
@@ -113,43 +151,23 @@ class GeminiLiveEngine(Engine):
                         if self.settings.native_translation:
                             output = content.output_transcription
                             if output and output.text:
-                                last_output = output.text
+                                state["output"] = merge_text(state["output"], output.text)
+                                state["updated"] = loop.time()
                                 await emit(
                                     CaptionEvent(
                                         kind="caption",
                                         lane="translation",
-                                        text=output.text,
+                                        text=state["output"],
                                         final=False,
                                     )
                                 )
-                            if content.turn_complete:
-                                if last_input:
-                                    await emit(
-                                        CaptionEvent(
-                                            kind="caption",
-                                            lane="original",
-                                            text=last_input,
-                                            final=True,
-                                            source_language=last_language,
-                                        )
-                                    )
-                                if last_output:
-                                    await emit(
-                                        CaptionEvent(
-                                            kind="caption",
-                                            lane="translation",
-                                            text=last_output,
-                                            final=True,
-                                        )
-                                    )
-                                last_input = ""
-                                last_output = ""
                         else:
                             if content.model_turn and content.model_turn.parts:
                                 for part in content.model_turn.parts:
                                     text = getattr(part, "text", None)
                                     if text:
                                         translation_buffer += text
+                                        state["updated"] = loop.time()
                                         await emit(
                                             CaptionEvent(
                                                 kind="caption",
@@ -158,16 +176,8 @@ class GeminiLiveEngine(Engine):
                                                 final=False,
                                             )
                                         )
-                            if content.turn_complete and translation_buffer.strip():
-                                await emit(
-                                    CaptionEvent(
-                                        kind="caption",
-                                        lane="translation",
-                                        text=translation_buffer.strip(),
-                                        final=True,
-                                    )
-                                )
-                                translation_buffer = ""
+                        if content.turn_complete:
+                            await finalize()
                 except asyncio.CancelledError:
                     raise
                 except Exception:
@@ -175,21 +185,36 @@ class GeminiLiveEngine(Engine):
                 finally:
                     finished.set()
 
+            async def finalizer() -> None:
+                idle = self.settings.idle_seconds
+                while not finished.is_set():
+                    await asyncio.sleep(0.3)
+                    updated = state["updated"]
+                    if not updated:
+                        continue
+                    gap = loop.time() - updated
+                    text = (state["output"] or state["input"]).strip()
+                    ends_sentence = bool(text) and text[-1] in ".!?…"
+                    if gap > idle * 1.8 or (ends_sentence and gap > idle * 0.6):
+                        await finalize()
+
             async def flusher() -> None:
                 await input_done.wait()
                 await asyncio.sleep(self.settings.flush_seconds)
+                await finalize()
                 finished.set()
 
             feeder_task = asyncio.create_task(feeder())
             receiver_task = asyncio.create_task(receiver())
+            finalizer_task = asyncio.create_task(finalizer())
             flusher_task = asyncio.create_task(flusher())
             try:
                 await finished.wait()
             finally:
-                for task in (feeder_task, receiver_task, flusher_task):
+                for task in (feeder_task, receiver_task, finalizer_task, flusher_task):
                     task.cancel()
                 await asyncio.gather(
-                    feeder_task, receiver_task, flusher_task, return_exceptions=True
+                    feeder_task, receiver_task, finalizer_task, flusher_task, return_exceptions=True
                 )
 
     async def run(
