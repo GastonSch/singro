@@ -5,7 +5,6 @@ const state = {
   lang: "both",
   videoType: null,
   videoSrc: null,
-  awaitingMedia: null,
 };
 
 const els = {
@@ -90,7 +89,6 @@ function handle(msg) {
     if (msg.lane === "original") data.liveOriginal = msg.text;
     else data.liveTranslation = msg.text;
     if (msg.session === state.selected) updateLive();
-    maybeStartMedia(msg.session);
     return;
   }
   if (msg.type === "block") {
@@ -99,7 +97,6 @@ function handle(msg) {
     data.liveOriginal = "";
     data.liveTranslation = "";
     if (msg.session === state.selected) { appendBlock(msg); updateLive(); }
-    maybeStartMedia(msg.session);
     return;
   }
   if (msg.type === "error") {
@@ -136,15 +133,14 @@ function embedUrl(url, autoplay) {
   return `${base}?${params.toString()}`;
 }
 
-function maybeStartMedia(id) {
-  if (state.awaitingMedia !== id) return;
-  state.awaitingMedia = null;
+function startMedia() {
+  const session = current();
+  if (!session) return;
   if (state.videoType === "video") {
     try { els.video.currentTime = 0; } catch { /* ignore */ }
     els.video.play().catch(() => {});
-  } else if (state.videoType === "iframe") {
-    const session = current();
-    if (session?.video) els.videoFrame.src = `${embedUrl(session.video, true)}&_=${Date.now()}`;
+  } else if (state.videoType === "iframe" && session.video) {
+    els.videoFrame.src = `${embedUrl(session.video, true)}&_=${Date.now()}`;
   }
 }
 
@@ -202,12 +198,10 @@ async function toggleRun() {
   const running = ["running", "starting"].includes(session.state);
   if (running) {
     els.video.pause();
-    state.awaitingMedia = null;
     await fetch(`/api/sessions/${encodeURIComponent(session.id)}/stop`, { method: "POST" });
   } else {
     await fetch(`/api/sessions/${encodeURIComponent(session.id)}/start`, { method: "POST" });
-    // El video arranca cuando llega el primer subtitulo, para quedar alineado.
-    state.awaitingMedia = session.id;
+    startMedia();
   }
 }
 

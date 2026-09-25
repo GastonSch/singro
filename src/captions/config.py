@@ -48,7 +48,8 @@ class Settings:
     idle_seconds: float = 1.2
     native_translation: bool = True
     autostart: bool = False
-    vad_silence_ms: int = 500
+    vad_silence_ms: int = 350
+    thinking_level: str = ""
     glossary: dict[str, str] = field(default_factory=dict)
     sessions: list[SessionConfig] = field(default_factory=list)
 
@@ -84,6 +85,7 @@ def load_settings(path: str | Path | None = None) -> Settings:
         flush_seconds=float(data.get("flush_seconds", 6.0)),
         idle_seconds=float(data.get("idle_seconds", 1.2)),
         vad_silence_ms=int(data.get("vad_silence_ms", 500)),
+        thinking_level=str(data.get("thinking_level", os.getenv("CAPTIONS_THINKING", ""))),
         native_translation=str(os.getenv("CAPTIONS_NATIVE_TRANSLATION", "")).lower()
         in {"1", "true", "yes"}
         or bool(data.get("native_translation", True)),

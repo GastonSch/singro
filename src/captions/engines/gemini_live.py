@@ -44,10 +44,17 @@ class GeminiLiveEngine(Engine):
             "realtime_input_config": types.RealtimeInputConfig(
                 automatic_activity_detection=types.AutomaticActivityDetection(
                     silence_duration_ms=self.settings.vad_silence_ms,
-                    prefix_padding_ms=200,
+                    prefix_padding_ms=100,
                 )
             ),
         }
+        if self.settings.thinking_level:
+            try:
+                kwargs["thinking_config"] = types.ThinkingConfig(
+                    thinking_level=self.settings.thinking_level
+                )
+            except Exception:  # noqa: BLE001 - optional field
+                log.debug("thinking_level no soportado, se ignora")
         if self.settings.native_translation:
             kwargs["translation_config"] = types.TranslationConfig(target_language_code=target_language)
             kwargs["output_audio_transcription"] = types.AudioTranscriptionConfig()
