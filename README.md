@@ -2,6 +2,8 @@
 
 > *Subtítulos y traducción en vivo, abiertos y a escala.*
 
+**Demo en vivo:** https://sincro.gscod.com · **Repo:** https://github.com/GastonSch/singro · **Pantalla de envío:** [SUBMISSION.md](SUBMISSION.md)
+
 Subtítulos en vivo **open source** para conferencias: transcripción en el idioma
 original y traducción en tiempo real (inglés → español y más), pensado para correr
 **muchas sesiones en paralelo** (5, 10, 30 escenarios) con un costo bajo.
