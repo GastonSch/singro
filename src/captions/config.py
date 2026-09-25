@@ -48,7 +48,7 @@ class Settings:
     idle_seconds: float = 1.2
     native_translation: bool = True
     autostart: bool = False
-    vad_silence_ms: int = 350
+    vad_silence_ms: int = 500
     thinking_level: str = ""
     glossary: dict[str, str] = field(default_factory=dict)
     sessions: list[SessionConfig] = field(default_factory=list)

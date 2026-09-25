@@ -44,7 +44,7 @@ class GeminiLiveEngine(Engine):
             "realtime_input_config": types.RealtimeInputConfig(
                 automatic_activity_detection=types.AutomaticActivityDetection(
                     silence_duration_ms=self.settings.vad_silence_ms,
-                    prefix_padding_ms=100,
+                    prefix_padding_ms=200,
                 )
             ),
         }
@@ -249,19 +249,19 @@ class GeminiLiveEngine(Engine):
                 await audio_q.put(None)
 
         pump_task = asyncio.create_task(pump())
-        backoff = 1.0
+        backoff = 0.5
         try:
             while not (pump_task.done() and audio_q.empty()):
                 try:
                     await self._session_once(audio_q, emit, source_language, target_language)
-                    backoff = 1.0
+                    backoff = 0.5
                 except asyncio.CancelledError:
                     raise
                 except Exception as exc:
                     log.exception("gemini_live session failed")
                     await emit(CaptionEvent(kind="error", detail=f"gemini_live: {exc}"))
                     await asyncio.sleep(backoff)
-                    backoff = min(backoff * 2, 15.0)
+                    backoff = min(backoff * 2, 4.0)
         finally:
             pump_task.cancel()
             await asyncio.gather(pump_task, return_exceptions=True)

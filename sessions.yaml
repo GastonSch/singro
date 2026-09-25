@@ -10,7 +10,7 @@ max_inflight: 4
 latency_target_ms: 2000
 native_translation: true
 idle_seconds: 1.2
-vad_silence_ms: 350
+vad_silence_ms: 500
 
 # No arrancar las sesiones solas: la audiencia las lanza con el botón "Ejecutar".
 autostart: false
@@ -29,7 +29,7 @@ sessions:
       type: file
       url: samples/demo_en.mp4
       realtime: true
-      loop: true
+      loop: false
     source_language: en
     target_language: es
     video: /samples/demo_en.mp4
@@ -40,7 +40,7 @@ sessions:
       type: file
       url: samples/demo_es.mp4
       realtime: true
-      loop: true
+      loop: false
     source_language: es
     target_language: en
     video: /samples/demo_es.mp4
