@@ -10,6 +10,7 @@ max_inflight: 4
 latency_target_ms: 2000
 native_translation: true
 idle_seconds: 1.2
+vad_silence_ms: 500
 
 # No arrancar las sesiones solas: la audiencia las lanza con el botón "Ejecutar".
 autostart: false

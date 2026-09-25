@@ -41,6 +41,12 @@ class GeminiLiveEngine(Engine):
                 parts=[types.Part(text=interpreter_instruction(target_language, self.settings.glossary))]
             ),
             "input_audio_transcription": transcription,
+            "realtime_input_config": types.RealtimeInputConfig(
+                automatic_activity_detection=types.AutomaticActivityDetection(
+                    silence_duration_ms=self.settings.vad_silence_ms,
+                    prefix_padding_ms=200,
+                )
+            ),
         }
         if self.settings.native_translation:
             kwargs["translation_config"] = types.TranslationConfig(target_language_code=target_language)
