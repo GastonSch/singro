@@ -1,69 +1,81 @@
 # Deploy de Sincro en `sincro.gscod.com`
 
-Guía de puesta en producción con **systemd + nginx** (recomendada, sin Docker) o
-**Docker Compose**.
+Opción rápida (LXC Debian, sin Docker) y opción Docker. El reverse proxy puede ser
+**nginx** directo o **Nginx Proxy Manager (NPM)** con SSL.
 
-## 1. Código y entorno
+## Opción rápida — script en el LXC Debian
 
-```bash
-sudo mkdir -p /opt/sincro && sudo chown "$USER" /opt/sincro
-git clone <tu-repo> /opt/sincro && cd /opt/sincro
-uv venv .venv
-uv pip install --python .venv/bin/python -r requirements.txt
-cp .env.example .env
-nano .env            # CAPTIONS_ENGINE=gemini_live  y  GEMINI_API_KEY=...
-```
-
-## 2. Servicio systemd
+Dentro del **LXC de la aplicación** (no el de NPM), como root:
 
 ```bash
-sudo cp deploy/sincro.service /etc/systemd/system/sincro.service
-# ajustá User/Group y las rutas si no usás /opt/sincro
-sudo useradd -r -s /usr/sbin/nologin sincro 2>/dev/null || true
-sudo chown -R sincro:sincro /opt/sincro
-sudo systemctl daemon-reload
-sudo systemctl enable --now sincro
-sudo systemctl status sincro
+apt-get update && apt-get install -y git
+git clone https://github.com/GastonSch/singro /tmp/sincro-src
+sudo GEMINI_API_KEY=AIza...tu_key... bash /tmp/sincro-src/deploy/install-lxc.sh
 ```
 
-El servicio escucha en `127.0.0.1:8000` (no expuesto directo).
+El script instala `ffmpeg`/`python3-venv`, clona el repo en `/opt/sincro`, crea el
+venv, escribe `.env`, registra el servicio **systemd** `sincro` y lo arranca en
+`0.0.0.0:8000`.
 
-## 3. nginx + TLS
+Verificar:
+
+```bash
+systemctl status sincro
+curl -s http://127.0.0.1:8000/api/health
+```
+
+Si te olvidaste la key:
+
+```bash
+nano /opt/sincro/.env      # GEMINI_API_KEY=...
+systemctl restart sincro
+```
+
+## Proxy + dominio
+
+### Con Nginx Proxy Manager (NPM)
+
+El NPM suele vivir en **otro contenedor**. Creá un *Proxy Host*:
+
+- Domain: `sincro.gscod.com`
+- Scheme: `http` · Forward Hostname: **IP del LXC de la app** · Forward Port: `8000`
+- ✅ **Websockets Support** (imprescindible para los subtítulos en vivo)
+- SSL: `Request a new certificate` / el que ya emitiste.
+
+### Con nginx directo en el mismo host
 
 ```bash
 sudo cp deploy/nginx-sincro.conf /etc/nginx/sites-available/sincro
 sudo ln -sf /etc/nginx/sites-available/sincro /etc/nginx/sites-enabled/sincro
-# DNS: apuntá el registro A de sincro.gscod.com a la IP del servidor
+# DNS: A de sincro.gscod.com -> IP
 sudo certbot --nginx -d sincro.gscod.com
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-El bloque `location /` ya trae el *upgrade* de WebSocket y `proxy_buffering off`,
-necesarios para que los subtítulos se transmitan en tiempo real.
+El bloque `location /` trae el *upgrade* de WebSocket y `proxy_buffering off`.
 
-## 4. Alternativa con Docker Compose
+## Opción Docker
 
 ```bash
-cp .env.example .env   # completar GEMINI_API_KEY
+cd /opt/sincro && cp .env.production.example .env   # completar GEMINI_API_KEY
 docker compose up -d --build
 ```
 
-(En ese caso, apuntá el `proxy_pass` de nginx a `127.0.0.1:8000` igual que arriba.)
+Ajustá el `ports`/proxy para que nginx o NPM apunten al puerto `8000`.
 
-## 5. Verificación
+## Verificación
 
 ```bash
 curl -s https://sincro.gscod.com/api/health
-# {"status":"ok","engine":"gemini_live","api_key_configured":true,...}
-
 curl -s https://sincro.gscod.com/api/sessions
 ```
 
-Abrí `https://sincro.gscod.com/` (audiencia), `/monitor` (producción) y
-`/overlay?session=escenario-1&lang=translation` (OBS).
+- Audiencia: `https://sincro.gscod.com/`
+- Monitor: `https://sincro.gscod.com/monitor`
+- Overlay OBS: `https://sincro.gscod.com/overlay?session=escenario-1&lang=translation`
 
 ## Escalar varias sesiones
 
-Todo corre en un proceso con tareas `asyncio`: agregá sesiones en `sessions.yaml`
-o por `POST /api/sessions`. Para varias réplicas, mové el `EventBus` a Redis/NATS
-(ver la sección *Multi-sesión y escalado* del README principal).
+Agregá escenarios en `sessions.yaml` o con `POST /api/sessions`. Para varias
+réplicas, mové el `EventBus` a Redis/NATS (ver *Multi-sesión y escalado* del
+README principal).
