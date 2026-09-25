@@ -5,6 +5,7 @@ const state = {
   lang: "both",
   videoType: null,
   videoSrc: null,
+  awaitingMedia: null,
 };
 
 const els = {
@@ -89,6 +90,7 @@ function handle(msg) {
     if (msg.lane === "original") data.liveOriginal = msg.text;
     else data.liveTranslation = msg.text;
     if (msg.session === state.selected) updateLive();
+    maybeStartMedia(msg.session);
     return;
   }
   if (msg.type === "block") {
@@ -97,6 +99,7 @@ function handle(msg) {
     data.liveOriginal = "";
     data.liveTranslation = "";
     if (msg.session === state.selected) { appendBlock(msg); updateLive(); }
+    maybeStartMedia(msg.session);
     return;
   }
   if (msg.type === "error") {
@@ -126,9 +129,23 @@ function selectSession(id) {
   renderRunButton();
 }
 
-function embedUrl(url) {
+function embedUrl(url, autoplay) {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|embed\/))([\w-]{6,})/);
-  return m ? `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0` : url;
+  const base = m ? `https://www.youtube.com/embed/${m[1]}` : url;
+  const params = new URLSearchParams({ rel: "0", autoplay: autoplay ? "1" : "0" });
+  return `${base}?${params.toString()}`;
+}
+
+function maybeStartMedia(id) {
+  if (state.awaitingMedia !== id) return;
+  state.awaitingMedia = null;
+  if (state.videoType === "video") {
+    try { els.video.currentTime = 0; } catch { /* ignore */ }
+    els.video.play().catch(() => {});
+  } else if (state.videoType === "iframe") {
+    const session = current();
+    if (session?.video) els.videoFrame.src = `${embedUrl(session.video, true)}&_=${Date.now()}`;
+  }
 }
 
 function setVideo() {
@@ -154,12 +171,13 @@ function setVideo() {
     els.video.hidden = true;
     els.videoFrame.hidden = false;
     const key = "yt:" + url;
-    if (state.videoSrc !== key) { els.videoFrame.src = embedUrl(url); state.videoSrc = key; }
+    if (state.videoSrc !== key) { els.videoFrame.src = embedUrl(url, false); state.videoSrc = key; }
     state.videoType = "iframe";
   } else {
     els.videoFrame.hidden = true;
     els.video.hidden = false;
     if (state.videoSrc !== url) {
+      els.video.pause();
       els.video.src = url;
       els.video.poster = url.replace(/\.mp4(\?.*)?$/i, ".jpg");
       state.videoSrc = url;
@@ -184,12 +202,12 @@ async function toggleRun() {
   const running = ["running", "starting"].includes(session.state);
   if (running) {
     els.video.pause();
+    state.awaitingMedia = null;
     await fetch(`/api/sessions/${encodeURIComponent(session.id)}/stop`, { method: "POST" });
   } else {
-    if (state.videoType === "video") { try { els.video.currentTime = 0; } catch { /* ignore */ } }
     await fetch(`/api/sessions/${encodeURIComponent(session.id)}/start`, { method: "POST" });
-    if (state.videoType === "video") els.video.play().catch(() => {});
-    if (state.videoType === "iframe") { els.videoFrame.src = els.videoFrame.src; }
+    // El video arranca cuando llega el primer subtitulo, para quedar alineado.
+    state.awaitingMedia = session.id;
   }
 }
 
