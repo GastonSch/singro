@@ -149,6 +149,7 @@ class Session:
             if event.translation:
                 self.bus.publish({"type": "caption", "session": self.id, "lane": "translation", "text": event.translation, "final": True, "ts": now})
             self.bus.publish({"type": "block", "session": self.id, **block})
+            await self._publish_status()
             return
 
         if event.lane == "original":
@@ -165,6 +166,7 @@ class Session:
                 self.stats["last_caption_at"] = now
                 self._record_latency()
                 self.bus.publish({"type": "block", "session": self.id, **block})
+                await self._publish_status()
         self.bus.publish(
             {
                 "type": "caption",
