@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import logging
+import shlex
 import shutil
+import sys
 import time
 from typing import AsyncIterator
 
@@ -31,7 +34,8 @@ class FFmpegAudioSource(AudioSource):
         self.loop = loop
         self.chunk_ms = max(20, chunk_ms)
         self._proc: asyncio.subprocess.Process | None = None
-        self._stderr_task: asyncio.Task | None = None
+        self._producer: asyncio.subprocess.Process | None = None
+        self._stderr_tasks: list[asyncio.Task] = []
 
     def _command(self, input_url: str) -> list[str]:
         if shutil.which("ffmpeg") is None:
@@ -58,16 +62,26 @@ class FFmpegAudioSource(AudioSource):
     def is_youtube(url: str) -> bool:
         return any(host in url for host in ("youtube.com", "youtu.be"))
 
+    @staticmethod
+    def _ytdlp_command() -> list[str] | None:
+        executable = shutil.which("yt-dlp")
+        if executable:
+            return [executable]
+        if importlib.util.find_spec("yt_dlp") is not None:
+            return [sys.executable, "-m", "yt_dlp"]
+        return None
+
     async def _resolve_input(self) -> str:
         """Resolves a YouTube URL to a direct audio stream with yt-dlp."""
         if not self.is_youtube(self.url):
             return self.url
-        if shutil.which("yt-dlp") is None:
+        ytdlp = self._ytdlp_command()
+        if ytdlp is None:
             raise RuntimeError(
                 "Fuente de YouTube requiere yt-dlp: uv pip install -r requirements-yt.txt"
             )
         proc = await asyncio.create_subprocess_exec(
-            "yt-dlp", "-g", "-f", "bestaudio/best", self.url,
+            *ytdlp, "-g", "-f", "bestaudio/best", self.url,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -90,13 +104,30 @@ class FFmpegAudioSource(AudioSource):
             SAMPLE_WIDTH, int(BYTES_PER_SECOND * self.chunk_ms / 1000)
         )
         while True:
-            input_url = await self._resolve_input()
-            self._proc = await asyncio.create_subprocess_exec(
-                *self._command(input_url),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            self._stderr_task = asyncio.create_task(self._drain_stderr(self._proc))
+            if self.is_youtube(self.url):
+                ytdlp = self._ytdlp_command()
+                if ytdlp is None:
+                    raise RuntimeError(
+                        "Fuente de YouTube requiere yt-dlp: uv pip install -r requirements-yt.txt"
+                    )
+                producer = " ".join(shlex.quote(part) for part in ytdlp)
+                consumer = " ".join(shlex.quote(part) for part in self._command("pipe:0"))
+                command = (
+                    f"{producer} -f bestaudio/best -o - --quiet --no-warnings "
+                    f"{shlex.quote(self.url)} | {consumer}"
+                )
+                self._proc = await asyncio.create_subprocess_shell(
+                    command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+            else:
+                self._proc = await asyncio.create_subprocess_exec(
+                    *self._command(self.url),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+            self._stderr_tasks = [asyncio.create_task(self._drain_stderr(self._proc))]
             started = time.monotonic()
             produced = 0
             try:
@@ -123,16 +154,18 @@ class FFmpegAudioSource(AudioSource):
 
     async def close(self) -> None:
         proc, self._proc = self._proc, None
-        if self._stderr_task:
-            self._stderr_task.cancel()
-            self._stderr_task = None
-        if proc and proc.returncode is None:
-            try:
-                proc.terminate()
+        producer, self._producer = self._producer, None
+        for task in self._stderr_tasks:
+            task.cancel()
+        self._stderr_tasks = []
+        for process in (producer, proc):
+            if process and process.returncode is None:
                 try:
-                    await asyncio.wait_for(proc.wait(), timeout=2)
-                except asyncio.TimeoutError:
-                    proc.kill()
-                    await proc.wait()
-            except ProcessLookupError:
-                pass
+                    process.terminate()
+                    try:
+                        await asyncio.wait_for(process.wait(), timeout=2)
+                    except asyncio.TimeoutError:
+                        process.kill()
+                        await process.wait()
+                except ProcessLookupError:
+                    pass
