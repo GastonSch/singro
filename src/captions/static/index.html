@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sincro — Subtítulos y traducción en vivo</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=5" />
 </head>
 <body data-lang="both">
   <header class="topbar">
@@ -26,7 +26,7 @@
   <main class="layout">
     <section class="card">
       <div class="video-box" id="video-box">
-        <video id="video" playsinline loop controls></video>
+        <video id="video" playsinline loop controls preload="metadata" hidden></video>
         <iframe id="video-frame" hidden allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
         <div class="video-fallback" id="video-fallback">Elegí una sesión y presioná <strong>Ejecutar</strong> para ver la charla con subtítulos.</div>
       </div>
@@ -127,6 +127,6 @@
     </form>
   </dialog>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=5"></script>
 </body>
 </html>

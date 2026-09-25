@@ -4,6 +4,7 @@ const state = {
   data: {},
   lang: "both",
   videoType: null,
+  videoSrc: null,
 };
 
 const els = {
@@ -67,9 +68,9 @@ function handle(msg) {
     for (const s of state.sessions) ensure(s.id);
     if (!state.selected || !state.sessions.find((s) => s.id === state.selected)) {
       state.selected = state.sessions[0]?.id ?? null;
-      setVideo();
     }
     renderTabs();
+    setVideo();
     renderStats();
     renderRunButton();
     return;
@@ -138,15 +139,31 @@ function setVideo() {
   els.videoSub.textContent = session ? `${session.source_language || "auto"} → ${session.target_language}` : "—";
 
   if (!url) {
-    els.video.hidden = true; els.videoFrame.hidden = true; els.video.removeAttribute("src");
-    state.videoType = null; return;
+    els.video.pause();
+    els.video.hidden = true;
+    els.videoFrame.hidden = true;
+    els.video.removeAttribute("src");
+    try { els.video.load(); } catch { /* ignore */ }
+    state.videoType = null;
+    state.videoSrc = null;
+    return;
   }
+
   if (/youtube\.com|youtu\.be/.test(url)) {
-    if (state.videoType !== "iframe") { els.video.pause(); els.video.hidden = true; els.videoFrame.hidden = false; }
-    els.videoFrame.src = embedUrl(url);
+    els.video.pause();
+    els.video.hidden = true;
+    els.videoFrame.hidden = false;
+    const key = "yt:" + url;
+    if (state.videoSrc !== key) { els.videoFrame.src = embedUrl(url); state.videoSrc = key; }
     state.videoType = "iframe";
   } else {
-    if (state.videoType !== "video") { els.videoFrame.hidden = true; els.video.src = url; els.video.hidden = false; }
+    els.videoFrame.hidden = true;
+    els.video.hidden = false;
+    if (state.videoSrc !== url) {
+      els.video.src = url;
+      els.video.poster = url.replace(/\.mp4(\?.*)?$/i, ".jpg");
+      state.videoSrc = url;
+    }
     state.videoType = "video";
   }
 }
@@ -269,6 +286,25 @@ fetch("/api/health").then((r) => r.json()).then((h) => {
   els.engine.textContent = `${h.engine}${h.api_key_configured ? "" : " (sin API key)"}`;
 }).catch(() => {});
 
+async function bootstrapSessions() {
+  try {
+    const response = await fetch("/api/sessions");
+    if (!response.ok) return;
+    const sessions = await response.json();
+    state.sessions = sessions;
+    for (const session of sessions) ensure(session.id);
+    if (!state.selected || !sessions.find((s) => s.id === state.selected)) {
+      state.selected = sessions[0]?.id ?? null;
+    }
+    renderTabs();
+    rebuildHistory();
+    setVideo();
+    renderStats();
+    renderRunButton();
+  } catch { /* ignore */ }
+}
+
 document.body.dataset.lang = state.lang;
 loadSamples();
+bootstrapSessions();
 connect();
