@@ -44,3 +44,16 @@ sessions:
     source_language: es
     target_language: en
     video: /samples/demo_es.mp4
+
+  # Charla real de Nerdearla (audio por yt-dlp, video embebido de YouTube).
+  # Requiere: uv pip install -r requirements-yt.txt
+  - id: escenario-3
+    name: Charla real (Nerdearla · YouTube)
+    source:
+      type: youtube
+      url: https://www.youtube.com/watch?v=7rteJoZSSzo
+      realtime: true
+      loop: false
+    source_language: en
+    target_language: es
+    video: https://www.youtube.com/watch?v=7rteJoZSSzo

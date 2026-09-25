@@ -1,0 +1,3 @@
+# Soporte para tomar audio de YouTube (charlas de Nerdearla). Instalar con:
+#   uv pip install -r requirements-yt.txt
+yt-dlp>=2024.8.6

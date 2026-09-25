@@ -138,6 +138,16 @@ source:
 
 Para regenerar los audios de prueba: `pip install edge-tts && ./scripts/make_samples.sh`.
 
+### Charlas reales de Nerdearla (YouTube)
+
+Sincro puede tomar el audio de una charla de YouTube con `yt-dlp` (el video se
+embebe en la página y los subtítulos salen del mismo audio):
+
+```bash
+uv pip install -r requirements-yt.txt
+# sessions.yaml ya incluye "escenario-3" apuntando a una charla real de @nerdearla
+```
+
 ---
 
 ## Motores disponibles

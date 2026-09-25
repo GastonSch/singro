@@ -33,7 +33,7 @@ class FFmpegAudioSource(AudioSource):
         self._proc: asyncio.subprocess.Process | None = None
         self._stderr_task: asyncio.Task | None = None
 
-    def _command(self) -> list[str]:
+    def _command(self, input_url: str) -> list[str]:
         if shutil.which("ffmpeg") is None:
             raise RuntimeError("ffmpeg no está instalado o no está en el PATH")
         return [
@@ -43,7 +43,7 @@ class FFmpegAudioSource(AudioSource):
             "error",
             "-nostdin",
             "-i",
-            self.url,
+            input_url,
             "-vn",
             "-ac",
             "1",
@@ -53,6 +53,29 @@ class FFmpegAudioSource(AudioSource):
             "s16le",
             "pipe:1",
         ]
+
+    @staticmethod
+    def is_youtube(url: str) -> bool:
+        return any(host in url for host in ("youtube.com", "youtu.be"))
+
+    async def _resolve_input(self) -> str:
+        """Resolves a YouTube URL to a direct audio stream with yt-dlp."""
+        if not self.is_youtube(self.url):
+            return self.url
+        if shutil.which("yt-dlp") is None:
+            raise RuntimeError(
+                "Fuente de YouTube requiere yt-dlp: uv pip install -r requirements-yt.txt"
+            )
+        proc = await asyncio.create_subprocess_exec(
+            "yt-dlp", "-g", "-f", "bestaudio/best", self.url,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        out, err = await proc.communicate()
+        urls = [line.strip() for line in out.decode(errors="replace").splitlines() if line.strip()]
+        if not urls:
+            raise RuntimeError(f"yt-dlp no pudo resolver: {err.decode(errors='replace')[:200]}")
+        return urls[0]
 
     async def _drain_stderr(self, proc: asyncio.subprocess.Process) -> None:
         assert proc.stderr is not None
@@ -67,8 +90,9 @@ class FFmpegAudioSource(AudioSource):
             SAMPLE_WIDTH, int(BYTES_PER_SECOND * self.chunk_ms / 1000)
         )
         while True:
+            input_url = await self._resolve_input()
             self._proc = await asyncio.create_subprocess_exec(
-                *self._command(),
+                *self._command(input_url),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )

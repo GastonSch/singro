@@ -21,7 +21,7 @@ __all__ = [
 
 def build_source(config: SourceConfig) -> AudioSource:
     kind = (config.type or "file").lower()
-    if kind in {"file", "stream", "url", "rtsp", "hls"}:
+    if kind in {"file", "stream", "url", "rtsp", "hls", "youtube"}:
         return FFmpegAudioSource(
             config.url,
             realtime=config.realtime,

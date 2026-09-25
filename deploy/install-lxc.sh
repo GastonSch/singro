@@ -32,6 +32,8 @@ echo ">> Entorno virtual + dependencias"
 python3 -m venv "${DIR}/.venv"
 "${DIR}/.venv/bin/pip" install -q --upgrade pip
 "${DIR}/.venv/bin/pip" install -q -r "${DIR}/requirements.txt"
+"${DIR}/.venv/bin/pip" install -q -r "${DIR}/requirements-yt.txt" || \
+  echo ">> yt-dlp no se pudo instalar (opcional, solo para fuentes de YouTube)"
 
 if [ ! -f "${DIR}/.env" ]; then
   echo ">> Creando ${DIR}/.env"
