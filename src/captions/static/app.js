@@ -200,8 +200,8 @@ async function toggleRun() {
     els.video.pause();
     await fetch(`/api/sessions/${encodeURIComponent(session.id)}/stop`, { method: "POST" });
   } else {
+    startMedia();  // dentro del gesto del click, para que el navegador permita autoplay
     await fetch(`/api/sessions/${encodeURIComponent(session.id)}/start`, { method: "POST" });
-    startMedia();
   }
 }
 
