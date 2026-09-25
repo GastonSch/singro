@@ -38,6 +38,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Sincro", version=__version__, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+if SAMPLES_DIR.exists():
+    app.mount("/samples", StaticFiles(directory=str(SAMPLES_DIR)), name="samples")
 
 
 @app.get("/")

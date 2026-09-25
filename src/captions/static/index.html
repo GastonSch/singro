@@ -6,11 +6,12 @@
   <title>Sincro — Subtítulos y traducción en vivo</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
-<body>
+<body data-lang="both">
   <header class="topbar">
     <div class="brand">
-      <span class="dot" id="conn" title="Conexión"></span>
+      <span class="logo"></span>
       <span>Sincro</span>
+      <span class="dot" id="conn" title="Conexión"></span>
       <small id="engine-badge"></small>
     </div>
     <div class="spacer"></div>
@@ -22,28 +23,50 @@
 
   <nav class="tabs" id="tabs"></nav>
 
-  <main class="stage">
-    <section class="captions" id="captions">
-      <div id="history"></div>
-      <div class="live" id="live">
-        <div class="original" id="live-original"></div>
-        <div class="translation" id="live-translation"></div>
+  <main class="layout">
+    <section class="card">
+      <div class="video-box" id="video-box">
+        <video id="video" playsinline loop controls></video>
+        <iframe id="video-frame" hidden allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+        <div class="video-fallback" id="video-fallback">Elegí una sesión y presioná <strong>Ejecutar</strong> para ver la charla con subtítulos.</div>
+      </div>
+      <div class="video-bar">
+        <button id="run" class="primary">▶&nbsp;Ejecutar</button>
+        <div style="min-width:0">
+          <div class="title" id="video-title">—</div>
+          <div class="sub" id="video-sub">—</div>
+        </div>
       </div>
     </section>
 
-    <div class="statsbar">
-      <span>Latencia: <strong id="stat-latency">–</strong></span>
-      <span>Segmentos: <strong id="stat-segments">0</strong></span>
-      <span>Errores: <strong id="stat-errors">0</strong></span>
-      <span>Estado: <strong id="stat-state">–</strong></span>
-      <span class="spacer" style="flex:1"></span>
-      <span>Exportar:</span>
-      <a id="export-srt" href="#" class="badge">SRT</a>
-      <a id="export-vtt" href="#" class="badge">VTT</a>
-      <a id="export-txt" href="#" class="badge">TXT</a>
-      <a id="overlay-link" href="#" target="_blank" class="badge">Overlay OBS</a>
-    </div>
+    <section class="card captions-card">
+      <div class="captions-head">
+        <span>Subtítulos en vivo</span>
+        <span class="spacer" style="flex:1"></span>
+        <span class="pill" id="head-state">—</span>
+      </div>
+      <div class="captions" id="captions">
+        <div id="history"></div>
+        <div class="live" id="live">
+          <div class="original" id="live-original"></div>
+          <div class="translation" id="live-translation"></div>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <div class="statsbar">
+    <span>Latencia: <strong id="stat-latency">–</strong></span>
+    <span>Segmentos: <strong id="stat-segments">0</strong></span>
+    <span>Errores: <strong id="stat-errors">0</strong></span>
+    <span>Estado: <strong id="stat-state">–</strong></span>
+    <span style="flex:1"></span>
+    <span>Exportar:</span>
+    <a id="export-srt" href="#" class="badge">SRT</a>
+    <a id="export-vtt" href="#" class="badge">VTT</a>
+    <a id="export-txt" href="#" class="badge">TXT</a>
+    <a id="overlay-link" href="#" target="_blank" class="badge">Overlay OBS</a>
+  </div>
 
   <dialog id="add-dialog">
     <h2>Agregar sesión</h2>
@@ -59,7 +82,7 @@
         </div>
       </div>
       <div class="field">
-        <label for="f-type">Fuente</label>
+        <label for="f-type">Fuente de audio</label>
         <select id="f-type">
           <option value="file">Archivo de audio/video</option>
           <option value="stream">Stream (HTTP/HLS/RTSP)</option>
@@ -68,8 +91,12 @@
       </div>
       <div class="field" id="url-field">
         <label for="f-url">URL o ruta</label>
-        <input id="f-url" list="sample-list" placeholder="samples/demo_en.mp3" />
+        <input id="f-url" list="sample-list" placeholder="samples/demo_en.mp4" />
         <datalist id="sample-list"></datalist>
+      </div>
+      <div class="field">
+        <label for="f-video">URL del video para mostrar (opcional)</label>
+        <input id="f-video" placeholder="/samples/demo_en.mp4 o https://youtube.com/..." />
       </div>
       <div class="row">
         <div class="field">
@@ -95,7 +122,7 @@
       </label>
       <div class="dialog-actions">
         <button type="button" id="cancel-add">Cancelar</button>
-        <button type="submit" class="primary">Crear y transmitir</button>
+        <button type="submit" class="primary">Crear</button>
       </div>
     </form>
   </dialog>

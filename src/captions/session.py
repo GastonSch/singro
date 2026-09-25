@@ -22,7 +22,7 @@ class Session:
         self.bus = bus
         self.settings = settings
         self.id = config.id
-        self.state = "stopped"
+        self.state = "idle"
         self.blocks: list[dict[str, Any]] = []
         self.stats: dict[str, Any] = {
             "captions": 0,
@@ -50,6 +50,7 @@ class Session:
             "source_url": self.config.source.url,
             "source_language": self.config.source_language,
             "target_language": self.config.target_language,
+            "video": self.config.video,
             "stats": dict(self.stats),
         }
 

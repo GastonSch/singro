@@ -26,14 +26,15 @@ class SessionManager:
 
     async def load_configured(self) -> None:
         for config in self.settings.sessions:
-            await self.add(config)
+            await self.add(config, start=self.settings.autostart)
 
-    async def add(self, config: SessionConfig) -> Session:
+    async def add(self, config: SessionConfig, start: bool = True) -> Session:
         if config.id in self.sessions:
             raise ValueError(f"La sesión {config.id!r} ya existe")
         session = Session(config, self.engine(), self.bus, self.settings)
         self.sessions[config.id] = session
-        await session.start()
+        if start:
+            await session.start()
         self.broadcast_sessions()
         return session
 
@@ -73,6 +74,7 @@ class SessionManager:
             ),
             source_language=payload.get("source_language"),
             target_language=str(payload.get("target_language", "es")),
+            video=str(payload.get("video", "")),
         )
 
     async def shutdown(self) -> None:

@@ -31,6 +31,7 @@ class SessionConfig:
     source: SourceConfig
     source_language: str | None = None
     target_language: str = "es"
+    video: str = ""
 
 
 @dataclass
@@ -46,6 +47,7 @@ class Settings:
     flush_seconds: float = 6.0
     idle_seconds: float = 1.2
     native_translation: bool = True
+    autostart: bool = False
     glossary: dict[str, str] = field(default_factory=dict)
     sessions: list[SessionConfig] = field(default_factory=list)
 
@@ -83,6 +85,8 @@ def load_settings(path: str | Path | None = None) -> Settings:
         native_translation=str(os.getenv("CAPTIONS_NATIVE_TRANSLATION", "")).lower()
         in {"1", "true", "yes"}
         or bool(data.get("native_translation", True)),
+        autostart=str(os.getenv("CAPTIONS_AUTOSTART", "")).lower() in {"1", "true", "yes"}
+        or bool(data.get("autostart", False)),
         glossary={str(k): str(v) for k, v in (data.get("glossary") or {}).items()},
     )
 
@@ -95,6 +99,7 @@ def load_settings(path: str | Path | None = None) -> Settings:
                 source=_source(raw.get("source") or {}),
                 source_language=raw.get("source_language"),
                 target_language=str(raw.get("target_language", "es")),
+                video=str(raw.get("video", "")),
             )
         )
     return settings

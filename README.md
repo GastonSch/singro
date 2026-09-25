@@ -102,6 +102,10 @@ uvicorn captions.main:app --app-dir src --port 8000
 Abrí **http://localhost:8000**. Por defecto arranca en modo `mock` con dos sesiones
 de ejemplo, así que **funciona sin ninguna credencial**.
 
+Las sesiones **no arrancan solas** (`autostart: false`). La audiencia elige el
+escenario, presiona **▶ Ejecutar** y ve el **video con los subtítulos en vivo**
+al costado. Podés pausar/detener y cambiar el idioma mostrado (original / traducción / ambos).
+
 - Vista audiencia: `/`
 - Panel de producción: `/monitor`
 - Overlay para OBS: `/overlay?session=escenario-1&lang=translation`
