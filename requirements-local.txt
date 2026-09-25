@@ -1,0 +1,4 @@
+# Optional offline engine (no cloud). Install with:
+#   uv pip install -r requirements-local.txt
+faster-whisper>=1.0.3
+argostranslate>=1.9.6

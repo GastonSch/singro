@@ -1,0 +1,3 @@
+# Optional microphone input. Install with:
+#   uv pip install -r requirements-mic.txt
+sounddevice>=0.4.6

@@ -1,0 +1,18 @@
+[Unit]
+Description=Sincro - subtitulos en vivo (FastAPI/Uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/sincro
+EnvironmentFile=/opt/sincro/.env
+ExecStart=/opt/sincro/.venv/bin/uvicorn captions.main:app --app-dir src --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+# Usuario sin privilegios dueño de /opt/sincro
+User=sincro
+Group=sincro
+
+[Install]
+WantedBy=multi-user.target

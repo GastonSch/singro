@@ -1,0 +1,38 @@
+# Configuración de sesiones de Sincro.
+# El motor real se elige con CAPTIONS_ENGINE en .env (mock | gemini_live | gemini_chunk | local).
+# Por defecto arranca en modo "mock" para que el proyecto funcione sin credenciales.
+engine: mock
+model: gemini-live-2.5-flash-preview
+rest_model: gemini-2.5-flash
+chunk_seconds: 4
+overlap_seconds: 0.5
+max_inflight: 4
+latency_target_ms: 2000
+
+# Glosario de términos técnicos y nombres propios (se inyecta en el prompt).
+glossary:
+  Kubernetes: Kubernetes
+  Nerdearla: Nerdearla
+  open source: código abierto
+  stream: transmisión
+
+sessions:
+  - id: escenario-1
+    name: Escenario 1 (inglés → español)
+    source:
+      type: file
+      url: samples/demo_en.mp3
+      realtime: true
+      loop: true
+    source_language: en
+    target_language: es
+
+  - id: escenario-2
+    name: Escenario 2 (español → inglés)
+    source:
+      type: file
+      url: samples/demo_es.mp3
+      realtime: true
+      loop: true
+    source_language: es
+    target_language: en

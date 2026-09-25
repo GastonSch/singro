@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sincro — Subtítulos y traducción en vivo</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot" id="conn" title="Conexión"></span>
+      <span>Sincro</span>
+      <small id="engine-badge"></small>
+    </div>
+    <div class="spacer"></div>
+    <span class="badge" id="session-count">0 sesiones</span>
+    <button id="lang-toggle" title="Cambiar idioma mostrado">ES + original</button>
+    <a class="badge" href="/monitor" target="_blank">Monitor</a>
+    <button id="add-session" class="primary">+ Sesión</button>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main class="stage">
+    <section class="captions" id="captions">
+      <div id="history"></div>
+      <div class="live" id="live">
+        <div class="original" id="live-original"></div>
+        <div class="translation" id="live-translation"></div>
+      </div>
+    </section>
+
+    <div class="statsbar">
+      <span>Latencia: <strong id="stat-latency">–</strong></span>
+      <span>Segmentos: <strong id="stat-segments">0</strong></span>
+      <span>Errores: <strong id="stat-errors">0</strong></span>
+      <span>Estado: <strong id="stat-state">–</strong></span>
+      <span class="spacer" style="flex:1"></span>
+      <span>Exportar:</span>
+      <a id="export-srt" href="#" class="badge">SRT</a>
+      <a id="export-vtt" href="#" class="badge">VTT</a>
+      <a id="export-txt" href="#" class="badge">TXT</a>
+      <a id="overlay-link" href="#" target="_blank" class="badge">Overlay OBS</a>
+    </div>
+  </main>
+
+  <dialog id="add-dialog">
+    <h2>Agregar sesión</h2>
+    <form id="add-form">
+      <div class="row">
+        <div class="field">
+          <label for="f-name">Nombre</label>
+          <input id="f-name" required placeholder="Escenario 1" />
+        </div>
+        <div class="field">
+          <label for="f-id">ID</label>
+          <input id="f-id" required placeholder="escenario-1" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-type">Fuente</label>
+        <select id="f-type">
+          <option value="file">Archivo de audio/video</option>
+          <option value="stream">Stream (HTTP/HLS/RTSP)</option>
+          <option value="mic">Micrófono</option>
+        </select>
+      </div>
+      <div class="field" id="url-field">
+        <label for="f-url">URL o ruta</label>
+        <input id="f-url" list="sample-list" placeholder="samples/demo_en.mp3" />
+        <datalist id="sample-list"></datalist>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="f-src">Idioma origen</label>
+          <select id="f-src">
+            <option value="">Detectar</option>
+            <option value="en">Inglés</option>
+            <option value="es">Español</option>
+            <option value="pt">Portugués</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-target">Idioma destino</label>
+          <select id="f-target">
+            <option value="es">Español</option>
+            <option value="en">Inglés</option>
+            <option value="pt">Portugués</option>
+          </select>
+        </div>
+      </div>
+      <label style="color:var(--muted);font-size:.8rem">
+        <input type="checkbox" id="f-loop" checked /> Repetir en loop (demo)
+      </label>
+      <div class="dialog-actions">
+        <button type="button" id="cancel-add">Cancelar</button>
+        <button type="submit" class="primary">Crear y transmitir</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

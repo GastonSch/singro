@@ -1,0 +1,32 @@
+[project]
+name = "sincro"
+version = "1.0.0"
+description = "Sincro: open source real-time transcription and translation for conferences (Nerdearla Vibeathon 2026)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Sincro contributors" }]
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "google-genai>=1.0",
+  "numpy>=1.26",
+  "python-dotenv>=1.0",
+  "python-multipart>=0.0.9",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+local = ["faster-whisper>=1.0.3", "argostranslate>=1.9.6"]
+mic = ["sounddevice>=0.4.6"]
+samples = ["edge-tts>=6.1"]
+
+[project.scripts]
+captions = "captions.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/captions"]

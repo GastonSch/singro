@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Monitor de producción — Sincro</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot" id="conn"></span>
+      <span>Monitor de producción</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="badge" id="health">–</span>
+    <a class="badge" href="/">Vista audiencia</a>
+  </header>
+  <main class="page">
+    <h1>Sesiones</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Estado</th><th>Nombre</th><th>Fuente</th><th>Origen → destino</th>
+          <th>Latencia</th><th>Segmentos</th><th>Errores</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="8">Cargando…</td></tr></tbody>
+    </table>
+  </main>
+  <script src="/static/monitor.js"></script>
+</body>
+</html>
